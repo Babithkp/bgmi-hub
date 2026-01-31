@@ -1,0 +1,25 @@
+# main.py
+import threading
+
+from server import app
+from ui import start_ui
+from matcher import load_teams
+
+def start_server():
+    print("Starting overlay server on http://127.0.0.1:3000")
+    app.run(
+        host="127.0.0.1",
+        port=3000,
+        debug=False,
+        use_reloader=False
+    )
+
+if __name__ == "__main__":
+    load_teams()  # load team DB once
+
+    # 🔥 START SERVER FIRST (BACKGROUND)
+    server_thread = threading.Thread(target=start_server, daemon=True)
+    server_thread.start()
+
+    # 🧠 START UI (BLOCKING)
+    start_ui()

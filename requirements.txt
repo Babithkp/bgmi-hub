@@ -1,0 +1,11 @@
+opencv-python
+easyocr
+numpy
+mss
+requests
+websocket-client
+pyinstaller
+requests
+flask
+state
+rapidfuzz

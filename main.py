@@ -17,9 +17,7 @@ def start_server():
 if __name__ == "__main__":
     load_teams()  # load team DB once
 
-    # 🔥 START SERVER FIRST (BACKGROUND)
     server_thread = threading.Thread(target=start_server, daemon=True)
     server_thread.start()
 
-    # 🧠 START UI (BLOCKING)
     start_ui()

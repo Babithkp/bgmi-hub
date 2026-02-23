@@ -5,7 +5,6 @@ warnings.filterwarnings("ignore", message=".*pin_memory.*")
 
 import threading
 import time
-import re
 import tkinter as tk
 from tkinter import ttk
 import webbrowser

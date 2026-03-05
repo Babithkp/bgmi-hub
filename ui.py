@@ -1,6 +1,7 @@
 # ui.py
 from nt import read
 import warnings
+
 warnings.filterwarnings("ignore", message=".*pin_memory.*")
 
 import threading
@@ -21,7 +22,7 @@ import app_state
 # GLOBAL STATE
 # =============================
 ocr_running = False
-show_preview = True
+show_preview = False
 selected_monitor_index = 1
 
 # UI Positions
@@ -52,6 +53,7 @@ OCR_REGION = {
 PREVIEW_PADDING = 120
 reader = None
 
+
 # =============================
 # OCR INIT (CPU ONLY)
 # =============================
@@ -59,6 +61,7 @@ def init_reader():
     global reader
     reader = easyocr.Reader(["en"], gpu=False)
     print("OCR ENGINE INITIALIZED (CPU ONLY)")
+
 
 # =============================
 # TEXT PARSER
@@ -71,11 +74,12 @@ def parse_hud_text(lines):
             tokens.append(clean)
     return tokens
 
+
 # =============================
 # OCR THREAD
 # =============================
 def ocr_loop():
-    global ocr_running, send_logo_position
+    global ocr_running, send_logo_position,show_preview
 
     with mss.mss() as sct:
         monitors = sct.monitors
@@ -92,7 +96,7 @@ def ocr_loop():
                     OCR_REGION["height"],
                 )
 
-                crop = img[y:y+h, x:x+w]
+                crop = img[y : y + h, x : x + w]
                 raw_text = reader.readtext(crop, detail=0)
                 tokens = parse_hud_text(raw_text)
 
@@ -136,7 +140,18 @@ def ocr_loop():
                     cv2.imshow("OCR Preview", preview)
                     cv2.waitKey(1)
                 else:
-                    cv2.destroyAllWindows()
+                    if show_preview:
+                        try:
+                            cv2.imshow("OCR Preview", preview)
+                            cv2.waitKey(1)
+                        except Exception as e:
+                            print("Preview disabled:", e)
+                            show_preview = False
+                        else:
+                            try:
+                                cv2.destroyAllWindows()
+                            except:
+                                pass
 
             except Exception as e:
                 print("OCR ERROR:", e)
@@ -144,6 +159,7 @@ def ocr_loop():
             time.sleep(1)
 
         cv2.destroyAllWindows()
+
 
 # =============================
 # UI CALLBACKS
@@ -156,10 +172,12 @@ def start_ocr():
     threading.Thread(target=ocr_loop, daemon=True).start()
     print("OCR STARTED")
 
+
 def stop_ocr():
     global ocr_running
     ocr_running = False
     print("OCR STOPPED")
+
 
 def update_region():
     OCR_REGION["top"] = int(top_var.get())
@@ -168,16 +186,20 @@ def update_region():
     OCR_REGION["height"] = int(height_var.get())
     print("UPDATED OCR REGION:", OCR_REGION)
 
+
 def toggle_preview():
     global show_preview
     show_preview = preview_var.get()
 
+
 def open_overlay():
     webbrowser.open(OVERLAY_URL + "/overlay")
+
 
 def select_monitor(*_):
     global selected_monitor_index
     selected_monitor_index = int(monitor_var.get())
+
 
 def apply_logo_position():
     global TeamShortLogoTop, TeamShortLogoLeft, TeamShortLogoWidth
@@ -200,6 +222,7 @@ def apply_logo_position():
 
     send_logo_position = True
     print("UI POSITIONS UPDATED")
+
 
 # =============================
 # UI WINDOW
@@ -243,7 +266,7 @@ def start_ui():
 
     Overlay_Page = tk.StringVar(value=OVERLAY_URL + "/overlay")
     ttk.Label(frame, text="Overlay Page URL").pack(anchor="w")
-    ttk.Entry(frame, textvariable=Overlay_Page,state="readonly").pack(fill="x")
+    ttk.Entry(frame, textvariable=Overlay_Page, state="readonly").pack(fill="x")
 
     ttk.Label(frame, text="Select Monitor").pack(anchor="w")
     monitor_var = tk.StringVar(value="1")
@@ -262,14 +285,23 @@ def start_ui():
     width_var = tk.StringVar(value=str(OCR_REGION["width"]))
     height_var = tk.StringVar(value=str(OCR_REGION["height"]))
 
-    for lbl, var in [("Top", top_var), ("Left", left_var), ("Width", width_var), ("Height", height_var)]:
+    for lbl, var in [
+        ("Top", top_var),
+        ("Left", left_var),
+        ("Width", width_var),
+        ("Height", height_var),
+    ]:
         ttk.Label(frame, text=lbl).pack(anchor="w")
         ttk.Entry(frame, textvariable=var).pack(fill="x")
 
-    ttk.Button(frame, text="Apply OCR Region", command=update_region).pack(fill="x", pady=4)
+    ttk.Button(frame, text="Apply OCR Region", command=update_region).pack(
+        fill="x", pady=4
+    )
 
-    preview_var = tk.BooleanVar(value=True)
-    ttk.Checkbutton(frame, text="Show OCR Preview", variable=preview_var, command=toggle_preview).pack(anchor="w")
+    preview_var = tk.BooleanVar(value=False)
+    ttk.Checkbutton(
+        frame, text="Show OCR Preview", variable=preview_var, command=toggle_preview
+    ).pack(anchor="w")
 
     ttk.Button(frame, text="Start OCR", command=start_ocr).pack(fill="x", pady=4)
     ttk.Button(frame, text="Stop OCR", command=stop_ocr).pack(fill="x")
@@ -306,7 +338,9 @@ def start_ui():
     field("Player Image Left", player_img_left_var)
     field("Player Image Size", player_img_size_var)
 
-    ttk.Button(frame, text="Apply UI Position", command=apply_logo_position).pack(fill="x", pady=6)
+    ttk.Button(frame, text="Apply UI Position", command=apply_logo_position).pack(
+        fill="x", pady=6
+    )
 
     init_reader()
     root.mainloop()

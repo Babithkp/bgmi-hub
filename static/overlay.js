@@ -6,7 +6,11 @@ async function updateOverlay() {  try {
     // Images
     document.getElementById("teamLogoSmall").src = data.teamImage;
     document.getElementById("teamLogo").src = data.teamImage;
-    document.getElementById("playerImage").src = data.playerImage;
+    if (data.playerImage) {
+      document.getElementById("playerImage").src = data.playerImage;
+    } else {
+      document.getElementById("playerImage").style.display = "none";
+    }
 
     // Player name
     const name = document.getElementById("playerName");
@@ -15,23 +19,27 @@ async function updateOverlay() {  try {
 
     if (data.ui_position) {
       const p = data.ui_position;
-    
+
+      const name = document.getElementById("playerName");
+      name.style.height = p.PlayerNameHeight + "px";
+      name.style.width = p.PlayerNameWidth + "px";
+
       // Small team logo (container)
       const teamSmallWrap = document.getElementById("teamsmallLogo");
       teamSmallWrap.style.top = p.TeamShortLogoTop + "px";
       teamSmallWrap.style.left = p.TeamShortLogoLeft + "px";
       teamSmallWrap.style.width = p.TeamShortLogoWidth + "px";
       teamSmallWrap.style.height = p.TeamShortLogoHeight + "px";
-    
+
       // Team bar (logo + name)
       const teamBar = document.getElementById("teamBar");
       teamBar.style.top = p.TeamLogoTop + "px";
       teamBar.style.left = p.TeamLogoLeft + "px";
-    
+
       const teamLogo = document.getElementById("teamLogo");
       teamLogo.style.width = p.TeamLogoSize + "px";
       teamLogo.style.height = p.TeamLogoSize + "px";
-    
+
       // Player image
       const playerImg = document.getElementById("playerImage");
       playerImg.style.top = p.PlayerImgTop + "px";

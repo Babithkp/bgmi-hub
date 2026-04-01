@@ -15,7 +15,7 @@ import mss
 import numpy as np
 import cv2
 
-from matcher import match_player
+from matcher import match_all
 import app_state
 
 # =============================
@@ -38,16 +38,24 @@ TeamLogoSize = 70
 PlayerImgTop = 897
 PlayerImgLeft = 1280
 PlayerImgSize = 174
+PlayerNameHeight = 20
+PlayerNameWidth = 250
 
 send_logo_position = False
 
 OVERLAY_URL = "http://127.0.0.1:3000"
 
 OCR_REGION = {
-    "top": 850,
+    "top": 870,
+    "left": 650,
+    "width": 60,
+    "height": 70,
+}
+OCR_REGION_2 = {
+    "top": 900,
     "left": 710,
-    "width": 350,
-    "height": 100,
+    "width": 180,
+    "height": 40,
 }
 
 PREVIEW_PADDING = 120
@@ -95,10 +103,17 @@ def ocr_loop():
                     OCR_REGION["width"],
                     OCR_REGION["height"],
                 )
+                x2, y2, w2, h2 = (
+                    OCR_REGION_2["left"],
+                    OCR_REGION_2["top"],
+                    OCR_REGION_2["width"],
+                    OCR_REGION_2["height"],
+                )
 
                 crop = img[y : y + h, x : x + w]
-                raw_text = reader.readtext(crop, detail=0)
-                tokens = parse_hud_text(raw_text)
+                crop2 = img[y2 : y2 + h2, x2 : x2 + w2]
+                raw_text = reader.readtext(crop, detail=0,allowlist="0123456789")
+                raw_text2 = reader.readtext(crop2, detail=0)
 
                 logo_payload = {}
                 if send_logo_position:
@@ -113,10 +128,17 @@ def ocr_loop():
                         "PlayerImgTop": PlayerImgTop,
                         "PlayerImgLeft": PlayerImgLeft,
                         "PlayerImgSize": PlayerImgSize,
+                        "PlayerNameHeight": PlayerNameHeight,
+                        "PlayerNameWidth": PlayerNameWidth,
                     }
                     send_logo_position = False
 
-                match = match_player(tokens)
+                tokens2 = parse_hud_text(raw_text2)
+
+                match = match_all(raw_text, tokens2)
+                # print(raw_text)
+                # print(tokens2)
+                # print(match)
                 if match:
                     app_state.CURRENT_MATCH = {
                         **match,
@@ -135,6 +157,13 @@ def ocr_loop():
                         (x - px1, y - py1),
                         (x - px1 + w, y - py1 + h),
                         (0, 255, 0),
+                        2,
+                    )
+                    cv2.rectangle(
+                        preview,
+                        (x2 - px1, y2 - py1),
+                        (x2 - px1 + w2, y2 - py1 + h2),
+                        (255, 0, 0),  # blue
                         2,
                     )
                     cv2.imshow("OCR Preview", preview)
@@ -184,7 +213,12 @@ def update_region():
     OCR_REGION["left"] = int(left_var.get())
     OCR_REGION["width"] = int(width_var.get())
     OCR_REGION["height"] = int(height_var.get())
+    OCR_REGION_2["top"] = int(top_var2.get())
+    OCR_REGION_2["left"] = int(left_var2.get())
+    OCR_REGION_2["width"] = int(width_var2.get())
+    OCR_REGION_2["height"] = int(height_var2.get())
     print("UPDATED OCR REGION:", OCR_REGION)
+    print("UPDATED OCR REGION 2:", OCR_REGION_2)
 
 
 def toggle_preview():
@@ -204,7 +238,7 @@ def select_monitor(*_):
 def apply_logo_position():
     global TeamShortLogoTop, TeamShortLogoLeft, TeamShortLogoWidth
     global TeamShortLogoHeight, TeamLogoTop, TeamLogoLeft
-    global TeamLogoSize, PlayerImgTop, PlayerImgLeft, PlayerImgSize
+    global TeamLogoSize, PlayerImgTop, PlayerImgLeft, PlayerImgSize, PlayerNameHeight, PlayerNameWidth
     global send_logo_position
 
     TeamShortLogoTop = int(short_logo_top_var.get())
@@ -219,6 +253,8 @@ def apply_logo_position():
     PlayerImgTop = int(player_img_top_var.get())
     PlayerImgLeft = int(player_img_left_var.get())
     PlayerImgSize = int(player_img_size_var.get())
+    PlayerNameHeight = int(player_name_height_var.get())
+    PlayerNameWidth = int(player_name_width_var.get())
 
     send_logo_position = True
     print("UI POSITIONS UPDATED")
@@ -228,10 +264,10 @@ def apply_logo_position():
 # UI WINDOW
 # =============================
 def start_ui():
-    global top_var, left_var, width_var, height_var
+    global top_var, left_var, width_var, height_var, top_var2, left_var2, width_var2, height_var2
     global short_logo_top_var, short_logo_left_var, short_logo_width_var, short_logo_height_var
     global team_logo_top_var, team_logo_left_var, team_logo_size_var
-    global player_img_top_var, player_img_left_var, player_img_size_var
+    global player_img_top_var, player_img_left_var, player_img_size_var, player_name_height_var, player_name_width_var
     global preview_var, monitor_var
 
     root = tk.Tk()
@@ -293,7 +329,23 @@ def start_ui():
     ]:
         ttk.Label(frame, text=lbl).pack(anchor="w")
         ttk.Entry(frame, textvariable=var).pack(fill="x")
-
+        
+    
+    ttk.Label(frame, text="OCR Region 2").pack(anchor="w", pady=(10, 0))
+    top_var2 = tk.StringVar(value=str(OCR_REGION_2["top"]))
+    left_var2 = tk.StringVar(value=str(OCR_REGION_2["left"]))
+    width_var2 = tk.StringVar(value=str(OCR_REGION_2["width"]))
+    height_var2 = tk.StringVar(value=str(OCR_REGION_2["height"]))
+    
+    for lbl, var in [
+        ("Top", top_var2),
+        ("Left", left_var2),
+        ("Width", width_var2),
+        ("Height", height_var2),
+    ]:
+        ttk.Label(frame, text=lbl).pack(anchor="w")
+        ttk.Entry(frame, textvariable=var).pack(fill="x")
+    
     ttk.Button(frame, text="Apply OCR Region", command=update_region).pack(
         fill="x", pady=4
     )
@@ -324,6 +376,8 @@ def start_ui():
     player_img_top_var = tk.StringVar(value="897")
     player_img_left_var = tk.StringVar(value="1280")
     player_img_size_var = tk.StringVar(value="174")
+    player_name_height_var = tk.StringVar(value="20")
+    player_name_width_var = tk.StringVar(value="250")
 
     field("Team Short Logo Top", short_logo_top_var)
     field("Team Short Logo Left", short_logo_left_var)
@@ -337,6 +391,8 @@ def start_ui():
     field("Player Image Top", player_img_top_var)
     field("Player Image Left", player_img_left_var)
     field("Player Image Size", player_img_size_var)
+    field("Player Name Height", player_name_height_var)
+    field("Player Name Width", player_name_width_var)
 
     ttk.Button(frame, text="Apply UI Position", command=apply_logo_position).pack(
         fill="x", pady=6

@@ -136,9 +136,9 @@ def ocr_loop():
                 tokens2 = parse_hud_text(raw_text2)
 
                 match = match_all(raw_text, tokens2)
-                # print(raw_text)
-                # print(tokens2)
-                # print(match)
+                print(raw_text)
+                print(tokens2)
+                print(match)
                 if match:
                     app_state.CURRENT_MATCH = {
                         **match,

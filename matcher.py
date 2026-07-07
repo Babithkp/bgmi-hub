@@ -6,7 +6,7 @@ TEAM_DB = []
 TEAM_SLOT_MAP = {}
 
 
-# ==============================
+# ==============================prisma generate && next build
 # LOAD DATA
 # ==============================
 def load_teams():
